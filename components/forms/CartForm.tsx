@@ -1,179 +1,95 @@
-/* eslint-disable react/no-children-prop */
 "use client"
 
 import * as React from "react"
-import { useForm } from "@tanstack/react-form"
 import { XIcon } from "lucide-react"
-import { toast } from "sonner"
-import { z } from "zod"
 
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
-  Field,
-  FieldContent,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLegend,
-  FieldSet,
-} from "@/components/ui/field"
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-} from "@/components/ui/input-group"
+import { Input } from "@/components/ui/input"
+import { Item, ItemContent } from "../ui/item"
+import { useStore } from "@/lib/store"
 
-const formSchema = z.object({
-  cart: z
-    .array(
-      z.object({
-        product: z.string().email("Enter a valid email product."),
-      })
+export function CartForm() {
+  const { items, removeItem, updateItem } = useStore()
+
+  const handleQuantityChange = (id: string, value: string) => {
+    const quantity = parseInt(value, 10) || 1
+    if (quantity > 0) {
+      updateItem(id, { quantity })
+    }
+  }
+
+  const handlePriceChange = (id: string, value: string) => {
+    const price = parseFloat(value) || 0
+    if (price >= 0) {
+      updateItem(id, { price })
+    }
+  }
+
+  if (items.length === 0) {
+    return (
+      <Item variant="outline">
+        <ItemContent className="py-8 text-center text-muted-foreground">
+          Корзина пуста. Добавьте товары.
+        </ItemContent>
+      </Item>
     )
-    .min(1, "Add at least one email product.")
-    .max(5, "You can add up to 5 email productes."),
-})
-
-export function FormTanstackArray() {
-  const form = useForm({
-    defaultValues: {
-      cart: [{ product: "" }],
-    },
-    validators: {
-      onBlur: formSchema,
-    },
-    onSubmit: async ({ value }) => {
-      toast("You submitted the following values:", {
-        description: (
-          <pre className="bg-code text-code-foreground mt-2 w-[320px] overflow-x-auto rounded-md p-4">
-            <code>{JSON.stringify(value, null, 2)}</code>
-          </pre>
-        ),
-        position: "bottom-right",
-        classNames: {
-          content: "flex flex-col gap-2",
-        },
-        style: {
-          "--border-radius": "calc(var(--radius)  + 4px)",
-        } as React.CSSProperties,
-      })
-    },
-  })
+  }
 
   return (
-    <Card className="w-full sm:max-w-md">
-      <CardHeader className="border-b">
-        <CardTitle>Contact Cart</CardTitle>
-        <CardDescription>Manage your contact email productes.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form
-          id="form-tanstack-array"
-          onSubmit={(e) => {
-            e.preventDefault()
-            form.handleSubmit()
-          }}
-        >
-          <form.Field name="cart" mode="array">
-            {(field) => {
-              const isInvalid =
-                field.state.meta.isTouched && !field.state.meta.isValid
-              return (
-                <FieldSet className="gap-4">
-                  <FieldLegend variant="label">Email Productes</FieldLegend>
-                  <FieldDescription>
-                    Add up to 5 email productes where we can contact you.
-                  </FieldDescription>
-                  <FieldGroup className="gap-4">
-                    {field.state.value.map((_, index) => (
-                      <form.Field
-                        key={index}
-                        name={`emails[${index}].product`}
-                        children={(subField) => {
-                          const isSubFieldInvalid =
-                            subField.state.meta.isTouched &&
-                            !subField.state.meta.isValid
-                          return (
-                            <Field
-                              orientation="horizontal"
-                              data-invalid={isSubFieldInvalid}
-                            >
-                              <FieldContent>
-                                <InputGroup>
-                                  <InputGroupInput
-                                    id={`form-tanstack-array-email-${index}`}
-                                    name={subField.name}
-                                    value={subField.state.value}
-                                    onBlur={subField.handleBlur}
-                                    onChange={(e) =>
-                                      subField.handleChange(e.target.value)
-                                    }
-                                    aria-invalid={isSubFieldInvalid}
-                                    placeholder="name@example.com"
-                                    type="email"
-                                    autoComplete="email"
-                                  />
-                                  {field.state.value.length > 1 && (
-                                    <InputGroupAddon align="inline-end">
-                                      <InputGroupButton
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon-xs"
-                                        onClick={() => field.removeValue(index)}
-                                        aria-label={`Remove email ${index + 1}`}
-                                      >
-                                        <XIcon />
-                                      </InputGroupButton>
-                                    </InputGroupAddon>
-                                  )}
-                                </InputGroup>
-                                {isSubFieldInvalid && (
-                                  <FieldError
-                                    errors={subField.state.meta.errors}
-                                  />
-                                )}
-                              </FieldContent>
-                            </Field>
-                          )
-                        }}
-                      />
-                    ))}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => field.pushValue({ product: "" })}
-                      disabled={field.state.value.length >= 5}
-                    >
-                      Add Email Product
-                    </Button>
-                  </FieldGroup>
-                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                </FieldSet>
-              )
-            }}
-          </form.Field>
-        </form>
-      </CardContent>
-      <CardFooter className="border-t">
-        <Field orientation="horizontal">
-          <Button type="button" variant="outline" onClick={() => form.reset()}>
-            Reset
-          </Button>
-          <Button type="submit" form="form-tanstack-array">
-            Save
-          </Button>
-        </Field>
-      </CardFooter>
-    </Card>
+    <div className="flex flex-col gap-3">
+      {items.map((item) => (
+        <Item key={item.id} variant="outline" size="sm">
+          <ItemContent className="flex flex-col gap-2">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-sm font-medium">{item.nomenclature_name}</p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => removeItem(item.id)}
+              >
+                <XIcon className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div>
+                <label className="mb-1 block font-medium">Кол-во</label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={item.quantity}
+                  onChange={(e) =>
+                    handleQuantityChange(item.id, e.target.value)
+                  }
+                  className="h-8"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block font-medium">Цена</label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={item.price.toFixed(2)}
+                  onChange={(e) => handlePriceChange(item.id, e.target.value)}
+                  className="h-8"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block font-medium">Сумма</label>
+                <div className="flex h-8 items-center rounded-md border border-input bg-background px-3 py-2">
+                  <span className="text-sm font-medium">
+                    {(item.quantity * item.price).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </ItemContent>
+        </Item>
+      ))}
+    </div>
   )
 }

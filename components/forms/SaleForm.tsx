@@ -2,16 +2,9 @@
 "use client"
 
 import { useForm } from "@tanstack/react-form"
-import { toast } from "sonner"
 import * as z from "zod"
 
-import {
-  Field,
-  FieldContent,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field"
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 
 import {
   Select,
@@ -20,241 +13,196 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-
-const organizations = [
-  { label: "English", value: "en" },
-  { label: "Spanish", value: "es" },
-  { label: "French", value: "fr" },
-  { label: "German", value: "de" },
-  { label: "Italian", value: "it" },
-  { label: "Chinese", value: "zh" },
-  { label: "Japanese", value: "ja" },
-] as const
-
-const accounts = [
-  { label: "English", value: "en" },
-  { label: "Spanish", value: "es" },
-  { label: "French", value: "fr" },
-  { label: "German", value: "de" },
-  { label: "Italian", value: "it" },
-  { label: "Chinese", value: "zh" },
-  { label: "Japanese", value: "ja" },
-] as const
-
-const warehouses = [
-  { label: "English", value: "en" },
-  { label: "Spanish", value: "es" },
-  { label: "French", value: "fr" },
-  { label: "German", value: "de" },
-  { label: "Italian", value: "it" },
-  { label: "Chinese", value: "zh" },
-  { label: "Japanese", value: "ja" },
-] as const
-
-const priceTypes = [
-  { label: "Рубль", value: "rub" },
-  { label: "Доллар США", value: "usd" },
-  { label: "Юань", value: "cny" },
-] as const
+import { useStore } from "@/lib/store"
+import React from "react"
+import { toast } from "sonner"
 
 const formSchema = z.object({
-  organization: z.string(),
-  account: z.string(),
-  warehouse: z.string(),
-  priceType: z.string(),
+  organization: z.string().min(1, "Выберите организацию"),
+  account: z.string().min(1, "Выберите счёт"),
+  warehouse: z.string().min(1, "Выберите склад"),
+  pricetype: z.string().min(1, "Выберите тип цены"),
 })
 
 export function SaleForm() {
+  const {
+    organizations,
+    payboxes,
+    warehouses,
+    pricetypes,
+    selected_organization_id,
+    selected_paybox_id,
+    selected_warehouse_id,
+    selected_pricetype_id,
+    setSelectedOrganization,
+    setSelectedPayBox,
+    setSelectedWarehouse,
+    setSelectedPriceType,
+  } = useStore()
+
   const form = useForm({
     defaultValues: {
-      organization: "",
-      account: "",
-      warehouse: "",
-      priceType: "",
+      organization: selected_organization_id || "",
+      account: selected_paybox_id || "",
+      warehouse: selected_warehouse_id || "",
+      pricetype: selected_pricetype_id || "",
     },
     validators: {
       onSubmit: formSchema,
     },
     onSubmit: async ({ value }) => {
-      toast("You submitted the following values:", {
-        description: (
-          <pre className="bg-code text-code-foreground mt-2 w-[320px] overflow-x-auto rounded-md p-4">
-            <code>{JSON.stringify(value, null, 2)}</code>
-          </pre>
-        ),
-        position: "bottom-right",
-        classNames: {
-          content: "flex flex-col gap-2",
-        },
-        style: {
-          "--border-radius": "calc(var(--radius)  + 4px)",
-        } as React.CSSProperties,
-      })
+      toast.success(JSON.stringify(value))
+      // Values are handled by the individual select handlers
     },
   })
 
+  // Sync store values to form when they change
+  React.useEffect(() => {
+    form.setFieldValue("organization", selected_organization_id || "")
+    form.setFieldValue("account", selected_paybox_id || "")
+    form.setFieldValue("warehouse", selected_warehouse_id || "")
+    form.setFieldValue("pricetype", selected_pricetype_id || "")
+  }, [
+    selected_organization_id,
+    selected_paybox_id,
+    selected_warehouse_id,
+    selected_pricetype_id,
+    form,
+  ])
+
   return (
-    <form
-      id="org"
-      onSubmit={(e) => {
-        e.preventDefault()
-        form.handleSubmit()
-      }}
-      className="space-y-3"
-    >
-      {/* ORGANIZATIONS */}
-      <FieldGroup>
+    <form id="sale-form">
+      <FieldGroup className="gap-4">
         <form.Field
           name="organization"
-          children={(field) => {
-            const isInvalid =
-              field.state.meta.isTouched && !field.state.meta.isValid
-            return (
-              <Field data-invalid={isInvalid} className="w-fit">
-                <FieldContent>
-                  <FieldLabel htmlFor="organization-id">Организация</FieldLabel>
-                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                </FieldContent>
-                <Select
-                  name={field.name}
-                  value={field.state.value}
-                  onValueChange={field.handleChange}
-                >
-                  <SelectTrigger
-                    id="organization-id"
-                    aria-invalid={isInvalid}
-                    className="min-w-fit"
-                  >
-                    <SelectValue placeholder="Выберите организацию" />
-                  </SelectTrigger>
-                  <SelectContent position="item-aligned">
-                    {organizations.map((org) => (
-                      <SelectItem key={org.value} value={org.value}>
-                        {org.label}
+          children={(field) => (
+            <Field>
+              <FieldLabel>Организация</FieldLabel>
+              <Select
+                value={field.state.value}
+                onValueChange={(value) => {
+                  setSelectedOrganization(value)
+                  field.handleChange(value)
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Выберите организацию" />
+                </SelectTrigger>
+                <SelectContent>
+                  {organizations.length > 0 ? (
+                    organizations.map((org) => (
+                      <SelectItem key={org.id} value={org.id.toString()}>
+                        {org.short_name || org.full_name || org.work_name}
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            )
-          }}
+                    ))
+                  ) : (
+                    <div className="p-2 text-sm text-muted-foreground">
+                      Нет доступных организаций
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
         />
-      </FieldGroup>
 
-      {/* ACCOUNT */}
-      <FieldGroup>
         <form.Field
           name="account"
-          children={(field) => {
-            const isInvalid =
-              field.state.meta.isTouched && !field.state.meta.isValid
-            return (
-              <Field data-invalid={isInvalid} className="w-fit">
-                <FieldContent>
-                  <FieldLabel htmlFor="account-id">Счёт</FieldLabel>
-                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                </FieldContent>
-                <Select
-                  name={field.name}
-                  value={field.state.value}
-                  onValueChange={field.handleChange}
-                >
-                  <SelectTrigger
-                    id="account-id"
-                    aria-invalid={isInvalid}
-                    className="min-w-fit"
-                  >
-                    <SelectValue placeholder="Выберите счёт" />
-                  </SelectTrigger>
-                  <SelectContent position="item-aligned">
-                    {accounts.map((acc) => (
-                      <SelectItem key={acc.value} value={acc.value}>
-                        {acc.label}
+          children={(field) => (
+            <Field>
+              <FieldLabel>Счёт</FieldLabel>
+              <Select
+                value={field.state.value}
+                onValueChange={(value) => {
+                  setSelectedPayBox(value)
+                  field.handleChange(value)
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Выберите счёт" />
+                </SelectTrigger>
+                <SelectContent>
+                  {payboxes.length > 0 ? (
+                    payboxes.map((box) => (
+                      <SelectItem key={box.id} value={box.id.toString()}>
+                        {box.name}
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            )
-          }}
+                    ))
+                  ) : (
+                    <div className="p-2 text-sm text-muted-foreground">
+                      Нет доступных касс
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
         />
-      </FieldGroup>
 
-      {/* WAREHOUSE */}
-      <FieldGroup>
         <form.Field
           name="warehouse"
-          children={(field) => {
-            const isInvalid =
-              field.state.meta.isTouched && !field.state.meta.isValid
-            return (
-              <Field data-invalid={isInvalid} className="w-fit">
-                <FieldContent>
-                  <FieldLabel htmlFor="warehouse-id">Склад</FieldLabel>
-                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                </FieldContent>
-                <Select
-                  name={field.name}
-                  value={field.state.value}
-                  onValueChange={field.handleChange}
-                >
-                  <SelectTrigger
-                    id="warehouse-id"
-                    aria-invalid={isInvalid}
-                    className="min-w-fit"
-                  >
-                    <SelectValue placeholder="Выберите склад" />
-                  </SelectTrigger>
-                  <SelectContent position="item-aligned">
-                    {warehouses.map((wh) => (
-                      <SelectItem key={wh.value} value={wh.value}>
-                        {wh.label}
+          children={(field) => (
+            <Field>
+              <FieldLabel>Склад</FieldLabel>
+              <Select
+                value={field.state.value}
+                onValueChange={(value) => {
+                  setSelectedWarehouse(value)
+                  field.handleChange(value)
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Выберите склад" />
+                </SelectTrigger>
+                <SelectContent>
+                  {warehouses.length > 0 ? (
+                    warehouses.map((wh) => (
+                      <SelectItem key={wh.id} value={wh.id.toString()}>
+                        {wh.name}
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            )
-          }}
+                    ))
+                  ) : (
+                    <div className="p-2 text-sm text-muted-foreground">
+                      Нет доступных складов
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
         />
-      </FieldGroup>
 
-      {/* PRICE TYPE */}
-      <FieldGroup>
         <form.Field
-          name="priceType"
-          children={(field) => {
-            const isInvalid =
-              field.state.meta.isTouched && !field.state.meta.isValid
-            return (
-              <Field data-invalid={isInvalid} className="w-fit">
-                <FieldContent>
-                  <FieldLabel htmlFor="priceType-id">Тип цены</FieldLabel>
-                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                </FieldContent>
-                <Select
-                  name={field.name}
-                  value={field.state.value}
-                  onValueChange={field.handleChange}
-                >
-                  <SelectTrigger
-                    id="priceType-id"
-                    aria-invalid={isInvalid}
-                    className="min-w-fit"
-                  >
-                    <SelectValue placeholder="Выберите тип цены" />
-                  </SelectTrigger>
-                  <SelectContent position="item-aligned">
-                    {priceTypes.map((pt) => (
-                      <SelectItem key={pt.value} value={pt.value}>
-                        {pt.label}
+          name="pricetype"
+          children={(field) => (
+            <Field>
+              <FieldLabel>Тип цены</FieldLabel>
+              <Select
+                value={field.state.value}
+                onValueChange={(value) => {
+                  setSelectedPriceType(value)
+                  field.handleChange(value)
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Выберите тип цены" />
+                </SelectTrigger>
+                <SelectContent>
+                  {pricetypes.length > 0 ? (
+                    pricetypes.map((pt) => (
+                      <SelectItem key={pt.id} value={pt.id.toString()}>
+                        {pt.name}
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            )
-          }}
+                    ))
+                  ) : (
+                    <div className="p-2 text-sm text-muted-foreground">
+                      Нет доступных типов цен
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
         />
       </FieldGroup>
     </form>

@@ -2,41 +2,35 @@
 "use client"
 
 import { useForm } from "@tanstack/react-form"
-import { toast } from "sonner"
 import * as z from "zod"
 
 import { Field, FieldError, FieldGroup } from "@/components/ui/field"
 import { Textarea } from "@/components/ui/textarea"
+import { useStore } from "@/lib/store"
+import React from "react"
 
 const formSchema = z.object({
   comment: z.string(),
 })
 
 export function CommentForm() {
+  const { comment, setComment } = useStore()
+
   const form = useForm({
     defaultValues: {
-      comment: "",
+      comment: comment,
     },
     validators: {
       onSubmit: formSchema,
     },
-    onSubmit: async ({ value }) => {
-      toast("You submitted the following values:", {
-        description: (
-          <pre className="bg-code text-code-foreground mt-2 w-[320px] overflow-x-auto rounded-md p-4">
-            <code>{JSON.stringify(value, null, 2)}</code>
-          </pre>
-        ),
-        position: "bottom-right",
-        classNames: {
-          content: "flex flex-col gap-2",
-        },
-        style: {
-          "--border-radius": "calc(var(--radius)  + 4px)",
-        } as React.CSSProperties,
-      })
+    onSubmit: async () => {
+      // Comment is handled by onChange
     },
   })
+
+  React.useEffect(() => {
+    form.setFieldValue("comment", comment)
+  }, [comment, form])
 
   return (
     <form
@@ -59,7 +53,10 @@ export function CommentForm() {
                   name={field.name}
                   value={field.state.value}
                   onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
+                  onChange={(e) => {
+                    field.handleChange(e.target.value)
+                    setComment(e.target.value)
+                  }}
                   aria-invalid={isInvalid}
                   placeholder="Комментарий к заказу (необязательно)"
                   className="min-h-30"
